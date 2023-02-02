@@ -1,0 +1,1 @@
+Yes, I know this code is bad. It's just a terrible hack until they add actual oidc support in the offical API.
