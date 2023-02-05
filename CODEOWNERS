@@ -1,0 +1,5 @@
+#Global default
+*       @ikiris
+
+#default for go specific
+*.go @ikiris
