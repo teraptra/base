@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -79,10 +79,10 @@ func (a *OIDCAuth) requestAuthToken(ctx context.Context, client *api.Client, st 
 	resp, err := client.RawRequestWithContext(ctx, r)
 	defer resp.Body.Close()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get auth uri")
+		return nil, fmt.Errorf("failed to get auth uri: %w", err)
 	}
 	if err := resp.DecodeJSON(st); err != nil {
-		return nil, errors.Wrap(err, "failed to decode response url")
+		return nil, fmt.Errorf("failed to decode response url: %w", err)
 	}
 	if st.Auth.ClientToken == "" {
 		return nil, errors.New("empty client token")
@@ -95,7 +95,7 @@ func (a *OIDCAuth) doCallout(ctx context.Context, client *api.Client, loginData 
 	//get auth url
 	secret, err := a.requestAuth(ctx, client, loginData)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get auth url")
+		return nil, fmt.Errorf("unable to get auth url: %w", err)
 	}
 
 	tc := make(chan ctoken, 1)
@@ -112,7 +112,7 @@ func (a *OIDCAuth) doCallout(ctx context.Context, client *api.Client, loginData 
 
 	//open browser
 	if err := openbrowser(authURI); err != nil {
-		return nil, errors.Wrap(err, "failed in browser callout")
+		return nil, fmt.Errorf("failed in browser callout: %w", err)
 	}
 
 	//wait for Response
@@ -124,13 +124,13 @@ func (a *OIDCAuth) doCallout(ctx context.Context, client *api.Client, loginData 
 	var tok ctoken
 	select {
 	case <-tctx.Done():
-		return nil, errors.Wrap(tctx.Err(), "timeout exceeded")
+		return nil, fmt.Errorf("timeout exceeded: %w", tctx.Err())
 	case tok = <-tc:
 	}
 
 	rt, err := a.requestAuthToken(ctx, client, secret, tok)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get final token")
+		return nil, fmt.Errorf("Failed to get final token: %w", err)
 	}
 
 	return rt, nil
@@ -169,12 +169,12 @@ func (a *OIDCAuth) requestAuth(ctx context.Context, client *api.Client, loginDat
 	r.SetJSONBody(loginData)
 	resp, err := client.RawRequestWithContext(ctx, r)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get auth uri")
+		return nil, fmt.Errorf("failed to get auth uri: %w", err)
 	}
 	defer resp.Body.Close()
 	body := api.Secret{}
 	if err := resp.DecodeJSON(&body); err != nil {
-		return nil, errors.Wrap(err, "failed to decode response url")
+		return nil, fmt.Errorf("failed to decode response url: %w", err)
 	}
 	if body.Data["auth_url"] == nil {
 		return nil, errors.New("missing auth URL")
@@ -211,7 +211,7 @@ func NewOIDCAuth(opts ...LoginOption) (*OIDCAuth, error) {
 		// *AppRoleAuth as the argument
 		err := opt(a)
 		if err != nil {
-			return nil, errors.Wrap(err, "error with login option")
+			return nil, fmt.Errorf("error with login option: %w", err)
 		}
 	}
 	return a, nil
