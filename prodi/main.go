@@ -15,16 +15,19 @@ import (
 )
 
 var (
-	sshID    = *flag.String("ssh_key", "id_ed25519_sk", "ssh identity file")
-	authPath = *flag.String("auth_path", "ssh-user-ca", "auth path")
-	authRole = *flag.String("auth_role", "ssh-user", "auth role")
-	emerg    = *flag.Bool("emergency", false, "Request Emergency Creds")
+	sshID     = ""
+	sshIDFlag = flag.String("ssh_key", "id_ed25519_sk", "ssh identity file")
+	authPath  = flag.String("auth_path", "ssh-user-ca", "auth path")
+	authRole  = flag.String("auth_role", "ssh-user", "auth role")
+	emerg     = flag.Bool("emergency", false, "Request Emergency Creds")
 )
 
 func main() {
+	flag.Parse()
 	ctx := context.Background()
-
-	if emerg {
+	sshID = *sshIDFlag
+	if *emerg {
+		log.Println("emergency mode")
 		sshID = fmt.Sprintf("%s-emerg", sshID)
 	}
 	//Load SSH Key
@@ -110,7 +113,7 @@ func signPublicKey(ctx context.Context, publicKey string, client *vault.Client) 
 	req := map[string]any{
 		"public_key": publicKey,
 	}
-	return client.SSHWithMountPoint(authPath).SignKeyWithContext(ctx, authRole, req)
+	return client.SSHWithMountPoint(*authPath).SignKeyWithContext(ctx, *authRole, req)
 }
 
 func writeKey(s *vault.Secret) error {

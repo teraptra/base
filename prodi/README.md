@@ -8,6 +8,3 @@ Prodi is a small program to automate the task of:
 </ol>
 
 It also supports an emergency mode (not yet implemented) to request long lived emergency certs.
-
-
-(Yes, some of you probably recognize this functionality suite.)
