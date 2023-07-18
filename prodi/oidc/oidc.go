@@ -68,38 +68,27 @@ func startListener(ctx context.Context, tc chan ctoken) error {
 	return nil
 }
 
-func (a *OIDCAuth) requestAuthToken(ctx context.Context, client *api.Client, st *api.Secret, ct ctoken) (*api.Secret, error) {
-	path := fmt.Sprintf("v1/auth/oidc/%s/callback", a.mountPath)
-	r := client.NewRequest("GET", path)
-	r.Params.Add("state", ct.state)
-	r.Params.Add("code", ct.code)
+func (a *OIDCAuth) requestAuthToken(ctx context.Context, client *api.Client, ct ctoken) (*api.Secret, error) {
+	path := fmt.Sprintf("auth/oidc/%s/callback", a.mountPath)
+	data := map[string][]string{
+		"state": {ct.state},
+		"code":  {ct.code},
+	}
 	if ct.nonce != "" {
-		r.Params.Add("nonce", ct.nonce)
+		data["nonce"] = []string{ct.nonce}
 	}
-	resp, err := client.RawRequestWithContext(ctx, r)
-	defer resp.Body.Close()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get auth uri: %w", err)
-	}
-	if err := resp.DecodeJSON(st); err != nil {
-		return nil, fmt.Errorf("failed to decode response url: %w", err)
-	}
-	if st.Auth.ClientToken == "" {
-		return nil, errors.New("empty client token")
-	}
-
-	return st, nil
+	return client.Logical().ReadWithDataWithContext(ctx, path, data)
 }
 
 func (a *OIDCAuth) doCallout(ctx context.Context, client *api.Client, loginData map[string]any) (*api.Secret, error) {
-	//get auth url
+	// get auth url
 	secret, err := a.requestAuth(ctx, client, loginData)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get auth url: %w", err)
 	}
 
 	tc := make(chan ctoken, 1)
-	//start local responder
+	// start local responder
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		return startListener(gctx, tc)
@@ -110,12 +99,12 @@ func (a *OIDCAuth) doCallout(ctx context.Context, client *api.Client, loginData 
 		return nil, errors.New("not string")
 	}
 
-	//open browser
+	// open browser
 	if err := openbrowser(authURI); err != nil {
 		return nil, fmt.Errorf("failed in browser callout: %w", err)
 	}
 
-	//wait for Response
+	// wait for Response
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
@@ -128,9 +117,9 @@ func (a *OIDCAuth) doCallout(ctx context.Context, client *api.Client, loginData 
 	case tok = <-tc:
 	}
 
-	rt, err := a.requestAuthToken(ctx, client, secret, tok)
+	rt, err := a.requestAuthToken(ctx, client, tok)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get final token: %w", err)
+		return nil, fmt.Errorf("failed to get final token: %w", err)
 	}
 
 	return rt, nil
@@ -164,23 +153,16 @@ func openbrowser(url string) error {
 }
 
 func (a *OIDCAuth) requestAuth(ctx context.Context, client *api.Client, loginData map[string]any) (*api.Secret, error) {
-	path := fmt.Sprintf("v1/auth/oidc/%s/auth_url", a.mountPath)
-	r := client.NewRequest("POST", path)
-	r.SetJSONBody(loginData)
-	resp, err := client.RawRequestWithContext(ctx, r)
+	path := fmt.Sprintf("auth/oidc/%s/auth_url", a.mountPath)
+	secret, err := client.Logical().WriteWithContext(ctx, path, loginData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth uri: %w", err)
 	}
-	defer resp.Body.Close()
-	body := api.Secret{}
-	if err := resp.DecodeJSON(&body); err != nil {
-		return nil, fmt.Errorf("failed to decode response url: %w", err)
-	}
-	if body.Data["auth_url"] == nil {
+	if secret.Data["auth_url"] == "" {
 		return nil, errors.New("missing auth URL")
 	}
 
-	return &body, nil
+	return secret, nil
 }
 
 func (a *OIDCAuth) Login(ctx context.Context, client *api.Client) (*api.Secret, error) {

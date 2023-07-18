@@ -12,11 +12,11 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 	auth "github.com/teraptra/base/prodi/oidc"
+	"golang.org/x/exp/slog"
 )
 
 var (
-	sshID     = ""
-	sshIDFlag = flag.String("ssh_key", "id_ed25519_sk", "ssh identity file")
+	sshID = flag.String("ssh_key", "id_ed25519_sk", "ssh identity file")
 	authPath  = flag.String("auth_path", "ssh-user-ca", "auth path")
 	authRole  = flag.String("auth_role", "ssh-user", "auth role")
 	emerg     = flag.Bool("emergency", false, "Request Emergency Creds")
@@ -25,37 +25,52 @@ var (
 func main() {
 	flag.Parse()
 	ctx := context.Background()
-	sshID = *sshIDFlag
-	if *emerg {
-		log.Println("emergency mode")
-		sshID = fmt.Sprintf("%s-emerg", sshID)
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	slog.SetDefault(logger)
+
+	if err := doStuff(ctx); err != nil {
+		slog.Error("failed to get prod cert: ", err)
+		os.Exit(-1)
 	}
-	//Load SSH Key
-	publicKey, err := getPubKey(getSshPath(), sshID)
+}
+
+// doStuff implements the basic business logic
+func doStuff(ctx context.Context) error {
+	if emerg {
+		sshID = &fmt.Sprintf("%s-emerg", *sshID)
+	}
+	// Load SSH Key
+	publicKey, err := getPubKey(getSshPath(), *sshID)
 	if err != nil || publicKey == "" {
-		log.Fatalf("failed to load pub key: %v", err)
+		return fmt.Errorf("failed to load pub key: %w", err)
 	}
 
-	//Vault Client
+	// Vault Client
 	client, err := newVaultClient(ctx)
 	if err != nil {
-		log.Fatal("vault client error: ", err)
+		return fmt.Errorf("vault client error: %w", err)
 	}
 
 	//#sign public key
 	s, err := signPublicKey(ctx, publicKey, client)
 	if err != nil {
-		log.Fatal("error signing public key: ", err)
+		return fmt.Errorf("error signing public key: %w", err)
 	}
 
 	//#Save cert somewhere
 	if err := writeKey(s); err != nil {
-		log.Fatal("failed to save cert: ", err)
+		return fmt.Errorf("failed to save cert: %w", err)
 	}
 
 	//#update agents
-	exec.Command("ssh-add", "-D").Start()
-	exec.Command("ssh-add").Start()
+	if err := exec.Command("ssh-add", "-D").Start(); err != nil {
+		return fmt.Errorf("failed to update ssh agent: %w", err)
+	}
+	if err := exec.Command("ssh-add").Start(); err != nil {
+		return fmt.Errorf("failed to update ssh agent: %w", err)
+	}
+
+	return nil
 }
 
 func getSshPath() string {
@@ -120,5 +135,5 @@ func writeKey(s *vault.Secret) error {
 	sn := s.Data["serial_number"]
 	key := s.Data["signed_key"]
 	fmt.Printf("key serial: %s\n", sn)
-	return os.WriteFile(getSshPath()+"/"+sshID+"-cert.pub", []byte(key.(string)), os.FileMode(0644))
+	return os.WriteFile(getSshPath()+"/"+*sshID+"-cert.pub", []byte(key.(string)), os.FileMode(0o644))
 }
