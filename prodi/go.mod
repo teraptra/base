@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	github.com/hashicorp/vault/api v1.8.3
-	github.com/pkg/errors v0.9.1
 	github.com/teraptra/base/prodi/oidc v0.0.0-20230202220807-21718a46f27a
 )
 
@@ -42,6 +41,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
