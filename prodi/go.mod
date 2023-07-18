@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/hashicorp/vault/api v1.9.2
-	github.com/pkg/errors v0.9.1
 	github.com/teraptra/base/prodi/oidc v0.0.0-20230202220807-21718a46f27a
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 )
@@ -24,6 +23,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/net v0.7.0 // indirect

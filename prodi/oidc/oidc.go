@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 

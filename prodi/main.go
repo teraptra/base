@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -10,19 +11,19 @@ import (
 	"os/exec"
 
 	vault "github.com/hashicorp/vault/api"
-	"github.com/pkg/errors"
 	auth "github.com/teraptra/base/prodi/oidc"
 	"golang.org/x/exp/slog"
 )
 
 var (
-	sshID    = *flag.String("ssh_key", "id_ed25519_sk", "ssh identity file")
-	authPath = *flag.String("auth_path", "ssh-user-ca", "auth path")
-	authRole = *flag.String("auth_role", "ssh-user", "auth role")
-	emerg    = *flag.Bool("emergency", false, "Request Emergency Creds")
+	sshID = flag.String("ssh_key", "id_ed25519_sk", "ssh identity file")
+	authPath  = flag.String("auth_path", "ssh-user-ca", "auth path")
+	authRole  = flag.String("auth_role", "ssh-user", "auth role")
+	emerg     = flag.Bool("emergency", false, "Request Emergency Creds")
 )
 
 func main() {
+	flag.Parse()
 	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	slog.SetDefault(logger)
@@ -36,10 +37,10 @@ func main() {
 // doStuff implements the basic business logic
 func doStuff(ctx context.Context) error {
 	if emerg {
-		sshID = fmt.Sprintf("%s-emerg", sshID)
+		sshID = &fmt.Sprintf("%s-emerg", *sshID)
 	}
 	// Load SSH Key
-	publicKey, err := getPubKey(getSshPath(), sshID)
+	publicKey, err := getPubKey(getSshPath(), *sshID)
 	if err != nil || publicKey == "" {
 		return fmt.Errorf("failed to load pub key: %w", err)
 	}
@@ -83,7 +84,7 @@ func getSshPath() string {
 func getPubKey(path, file string) (string, error) {
 	f, err := os.Open(path + "/" + file + ".pub")
 	if err != nil {
-		return "", errors.Wrap(err, "Unable to read public key file")
+		return "", fmt.Errorf("unable to read public key file: %w", err)
 	}
 	defer f.Close()
 
@@ -92,7 +93,7 @@ func getPubKey(path, file string) (string, error) {
 	s.Scan()
 	s.Scan()
 	if s.Err() != nil {
-		return "", errors.Wrap(err, "error scanning pubfile")
+		return "", fmt.Errorf("error scanning pubfile: %w", err)
 	}
 	return s.Text(), nil
 }
@@ -100,7 +101,7 @@ func getPubKey(path, file string) (string, error) {
 func login(ctx context.Context, client *vault.Client) (*vault.Secret, error) {
 	oidcAuth, err := auth.NewOIDCAuth()
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to initialize auth method")
+		return nil, fmt.Errorf("unable to initialize auth method: %w", err)
 	}
 
 	return client.Auth().Login(ctx, oidcAuth)
@@ -109,12 +110,12 @@ func login(ctx context.Context, client *vault.Client) (*vault.Secret, error) {
 func newVaultClient(ctx context.Context) (*vault.Client, error) {
 	client, err := vault.NewClient(vault.DefaultConfig())
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to initialize Vault client")
+		return nil, fmt.Errorf("unable to initialize Vault client: %w", err)
 	}
 
 	authInfo, err := login(ctx, client)
 	if err != nil {
-		return nil, errors.Wrap(err, "login error")
+		return nil, fmt.Errorf("login error: %w", err)
 	}
 	if authInfo == nil {
 		return nil, errors.New("empty auth info")
@@ -127,12 +128,12 @@ func signPublicKey(ctx context.Context, publicKey string, client *vault.Client) 
 	req := map[string]any{
 		"public_key": publicKey,
 	}
-	return client.SSHWithMountPoint(authPath).SignKeyWithContext(ctx, authRole, req)
+	return client.SSHWithMountPoint(*authPath).SignKeyWithContext(ctx, *authRole, req)
 }
 
 func writeKey(s *vault.Secret) error {
 	sn := s.Data["serial_number"]
 	key := s.Data["signed_key"]
 	fmt.Printf("key serial: %s\n", sn)
-	return os.WriteFile(getSshPath()+"/"+sshID+"-cert.pub", []byte(key.(string)), os.FileMode(0o644))
+	return os.WriteFile(getSshPath()+"/"+*sshID+"-cert.pub", []byte(key.(string)), os.FileMode(0o644))
 }
