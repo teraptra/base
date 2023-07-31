@@ -36,8 +36,9 @@ func main() {
 
 // doStuff implements the basic business logic
 func doStuff(ctx context.Context) error {
-	if emerg {
-		sshID = &fmt.Sprintf("%s-emerg", *sshID)
+	if *emerg {
+		*sshID = fmt.Sprintf("%s-emerg", *sshID)
+		*authRole = "ssh-emerg"
 	}
 	// Load SSH Key
 	publicKey, err := getPubKey(getSshPath(), *sshID)
