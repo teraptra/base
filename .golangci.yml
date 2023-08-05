@@ -24,4 +24,4 @@ linters:
     #- gci
     #- gofmt
     #- goimports
-skip-cache: true
+#skip-cache: true
