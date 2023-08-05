@@ -1,4 +1,4 @@
-module github.com/teraptra/base/prodi/oidc
+module prodi/oidc
 
 go 1.20
 

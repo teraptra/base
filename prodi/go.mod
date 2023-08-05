@@ -1,17 +1,18 @@
-module github.com/teraptra/base/prodi
+module prodi
 
 go 1.20
 
+replace oidc => ./oidc
+
 require (
 	github.com/hashicorp/vault/api v1.9.2
-	github.com/teraptra/base/prodi/oidc v0.0.0-20230202220807-21718a46f27a
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	oidc v0.0.0-00010101000000-000000000000
 )
 
 require (
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -23,7 +24,6 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/net v0.7.0 // indirect

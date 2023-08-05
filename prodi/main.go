@@ -11,7 +11,7 @@ import (
 	"os/exec"
 
 	vault "github.com/hashicorp/vault/api"
-	auth "github.com/teraptra/base/prodi/oidc"
+	auth "oidc"
 	"golang.org/x/exp/slog"
 )
 
