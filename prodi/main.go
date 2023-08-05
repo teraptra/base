@@ -7,19 +7,19 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"oidc"
 	"os"
 	"os/exec"
 
 	vault "github.com/hashicorp/vault/api"
-	auth "oidc"
 	"golang.org/x/exp/slog"
 )
 
 var (
-	sshID = flag.String("ssh_key", "id_ed25519_sk", "ssh identity file")
-	authPath  = flag.String("auth_path", "ssh-user-ca", "auth path")
-	authRole  = flag.String("auth_role", "ssh-user", "auth role")
-	emerg     = flag.Bool("emergency", false, "Request Emergency Creds")
+	sshID    = flag.String("ssh_key", "id_ed25519_sk", "ssh identity file")
+	authPath = flag.String("auth_path", "ssh-user-ca", "auth path")
+	authRole = flag.String("auth_role", "ssh-user", "auth role")
+	emerg    = flag.Bool("emergency", false, "Request Emergency Creds")
 )
 
 func main() {
@@ -100,7 +100,7 @@ func getPubKey(path, file string) (string, error) {
 }
 
 func login(ctx context.Context, client *vault.Client) (*vault.Secret, error) {
-	oidcAuth, err := auth.NewOIDCAuth()
+	oidcAuth, err := oidc.NewOIDCAuth()
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize auth method: %w", err)
 	}
