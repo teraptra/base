@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - id: get-go-folders
-        run: echo "::set-output name=locs::$( find . -maxdepth 2 -type f -name '*.go' | cut -d/ -f2 | uniq | sed 's/$/\/.../g'|paste -sd, -)"
+        run: echo "::set-output name=locs::$(go list -m  | awk 'NF{print $$0 "/..."}')"
   golangci:
     needs: list-manifests
     runs-on: ubuntu-latest
@@ -26,7 +26,7 @@ jobs:
           # When `install-mode` is `binary` (default) the value can be v1.2 or v1.2.3 or `latest` to use the latest version.
           # When `install-mode` is `goinstall` the value can be v1.2.3, `latest`, or the hash of a commit.
           version: v1.53
-          args: --config ${{needs.list-manifests.outputs.locs}}
+          args: --config ./.github/golangci.yml ${{needs.list-manifests.outputs.locs}}
   go-build:
     needs: list-manifests
     runs-on: ubuntu-latest
