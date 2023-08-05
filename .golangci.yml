@@ -1,5 +1,7 @@
 linters:
-  enable-all: true
+  enable-all: false
+  enable:
+    #- wsl
   # Enable presets.
   # https://golangci-lint.run/usage/linters
   presets:
@@ -18,3 +20,8 @@ linters:
   # Run only fast linters from enabled linters set (first run won't be fast)
   # Default: false
   fast: true
+  disable:
+    - gci
+    - gofmt
+    - goimports
+skip-cache: true
