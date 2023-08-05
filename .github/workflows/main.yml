@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - id: get-go-folders
-        run: echo "::set-output name=locs::$(go list -m  | awk 'NF{print $$0 "/..."}')"
+        run: echo "::set-output name=locs::$(go list -m | sed "s/github.com\/teraptra\/base///g" | awk 'NF{print $$0 "/..."}')"
   golangci:
     needs: list-manifests
     runs-on: ubuntu-latest
