@@ -1,4 +1,4 @@
-module prodi/oidc
+module oidc
 
 go 1.20
 
